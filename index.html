@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<script type="application/json" id="cowork-artifact-meta">
+{
+  "name": "Linkedin Dashboard Clientes",
+  "schemaVersion": 1,
+  "description": "Dashboard de performance LinkedIn para clientes: Hannetie Koyama Sato, Juliana Maggi Lima, Maggi Lima Sato Advocacia. Dados semanais + análise estratégica mensal (o que funciona / não funciona / melhorar)."
+}
+</script>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LinkedIn Dashboard — Clientes</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --maggi: #7c2d12;
+    --maggi-light: #fef3c7;
+    --maggi-mid: #b45309;
+    --hannetie: #7c3aed;
+    --hannetie-light: #ede9fe;
+    --juliana: #059669;
+    --juliana-light: #d1fae5;
+    --jamilly: #0077b5;
+    --jamilly-light: #dbeafe;
+    --bg: #f8fafc;
+    --card: #ffffff;
+    --border: #e2e8f0;
+    --text: #0f172a;
+    --muted: #64748b;
+    --subtle: #f1f5f9;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); }
+
+  .header { background: #0f172a; padding: 20px 32px; display: flex; align-items: center; gap: 16px; }
+  .header-logo { width: 32px; height: 32px; background: #0077b5; border-radius: 6px; display: flex; align-items: center; justify-content: center; }
+  .header-logo svg { width: 18px; height: 18px; fill: white; }
+  .header h1 { color: white; font-size: 18px; font-weight: 600; }
+  .header span { color: #94a3b8; font-size: 13px; margin-left: auto; }
+
+  .tabs-nav { background: white; border-bottom: 1px solid var(--border); padding: 0 32px; display: flex; gap: 0; overflow-x: auto; }
+  .tab-btn { padding: 16px 24px; font-size: 14px; font-weight: 500; border: none; background: none; cursor: pointer; color: var(--muted); border-bottom: 3px solid transparent; white-space: nowrap; transition: all .2s; }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active-maggi { color: var(--maggi-mid); border-bottom-color: var(--maggi-mid); }
+  .tab-btn.active-hannetie { color: var(--hannetie); border-bottom-color: var(--hannetie); }
+  .tab-btn.active-juliana { color: var(--juliana); border-bottom-color: var(--juliana); }
+  .tab-btn.active-jamilly { color: var(--jamilly); border-bottom-color: var(--jamilly); }
+
+  .tab-panel { display: none; padding: 32px; max-width: 1100px; margin: 0 auto; }
+  .tab-panel.active { display: block; }
+
+  .profile-header { display: flex; align-items: flex-start; gap: 20px; margin-bottom: 28px; }
+  .profile-avatar { width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 22px; color: white; flex-shrink: 0; }
+  .profile-info h2 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+  .profile-info p { font-size: 14px; color: var(--muted); }
+  .period-badge { margin-left: auto; background: var(--subtle); border: 1px solid var(--border); border-radius: 20px; padding: 6px 14px; font-size: 12px; color: var(--muted); font-weight: 500; white-space: nowrap; }
+
+  .metrics-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 16px; margin-bottom: 28px; }
+  .metric-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px; }
+  .metric-card .label { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 600; margin-bottom: 8px; }
+  .metric-card .value { font-size: 28px; font-weight: 700; line-height: 1; margin-bottom: 6px; }
+  .metric-card .delta { font-size: 12px; font-weight: 500; }
+  .delta-up { color: #16a34a; }
+  .delta-down { color: #dc2626; }
+  .delta-neutral { color: var(--muted); }
+
+  .chart-section { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 28px; }
+  .section-title { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+  .section-subtitle { font-size: 12px; color: var(--muted); margin-bottom: 20px; }
+  .chart-wrapper { height: 200px; }
+
+  .analysis-header { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+  .analysis-header h3 { font-size: 18px; font-weight: 700; }
+  .analysis-header span { font-size: 12px; color: var(--muted); background: var(--subtle); padding: 4px 10px; border-radius: 12px; }
+  .analysis-badge { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+
+  .sections-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+  @media (max-width: 700px) { .sections-grid { grid-template-columns: 1fr; } }
+  .analysis-section { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 22px; }
+  .analysis-section.full-width { grid-column: 1 / -1; }
+  .analysis-section .sec-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 4px; }
+  .analysis-section h4 { font-size: 15px; font-weight: 700; margin-bottom: 14px; }
+  .analysis-section p, .analysis-section li { font-size: 13.5px; line-height: 1.7; color: #334155; }
+  .analysis-section ul { padding-left: 18px; }
+  .analysis-section ul li { margin-bottom: 8px; }
+  .analysis-section strong { color: var(--text); font-weight: 600; }
+
+  .highlight-box { border-radius: 8px; padding: 12px 16px; margin: 12px 0; font-size: 13px; line-height: 1.6; }
+
+  .maggi .metric-card .value { color: var(--maggi-mid); }
+  .maggi .analysis-section h4::before { content: ''; display: inline-block; width: 3px; height: 14px; background: var(--maggi-mid); border-radius: 2px; margin-right: 8px; vertical-align: middle; }
+  .hannetie .metric-card .value { color: var(--hannetie); }
+  .hannetie .analysis-section h4::before { content: ''; display: inline-block; width: 3px; height: 14px; background: var(--hannetie); border-radius: 2px; margin-right: 8px; vertical-align: middle; }
+  .juliana .metric-card .value { color: var(--juliana); }
+  .juliana .analysis-section h4::before { content: ''; display: inline-block; width: 3px; height: 14px; background: var(--juliana); border-radius: 2px; margin-right: 8px; vertical-align: middle; }
+  .jamilly .metric-card .value { color: var(--jamilly); }
+  .jamilly .analysis-section h4::before { content: ''; display: inline-block; width: 3px; height: 14px; background: var(--jamilly); border-radius: 2px; margin-right: 8px; vertical-align: middle; }
+
+  .learnings { background: #0f172a; border-radius: 12px; padding: 24px; margin-top: 4px; }
+  .learnings h4 { color: white; font-size: 15px; font-weight: 700; margin-bottom: 16px; }
+  .learning-item { display: flex; gap: 12px; margin-bottom: 14px; }
+  .learning-num { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: white; flex-shrink: 0; }
+  .learning-item p { font-size: 13px; color: #cbd5e1; line-height: 1.6; padding-top: 2px; }
+
+  .no-data { background: var(--card); border: 2px dashed var(--border); border-radius: 12px; padding: 60px 32px; text-align: center; margin: 20px 0; }
+  .no-data h3 { font-size: 16px; font-weight: 600; margin-bottom: 8px; color: var(--muted); }
+  .no-data p { font-size: 13px; color: var(--muted); }
+
+  .footer-note { font-size: 11px; color: var(--muted); text-align: center; padding: 20px; border-top: 1px solid var(--border); margin-top: 40px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-logo">
+    <svg viewBox="0 0 24 24"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg>
+  </div>
+  <h1>LinkedIn Performance Dashboard</h1>
+  <span>Atualizado em junho 2026</span>
+</div>
+
+<nav class="tabs-nav">
+  <button class="tab-btn active-maggi" onclick="showTab('maggi', this)">Maggi Lima Sato</button>
+  <button class="tab-btn" onclick="showTab('hannetie', this)">Hannetie Sato</button>
+  <button class="tab-btn" onclick="showTab('juliana', this)">Juliana Maggi Lima</button>
+  <button class="tab-btn" onclick="showTab('jamilly', this)">Jamilly Farah</button>
+</nav>
+
+<!-- ===================== MAGGI LIMA SATO ===================== -->
+<div id="panel-maggi" class="tab-panel active maggi">
+  <div class="profile-header">
+    <div class="profile-avatar" style="background: var(--maggi);">M</div>
+    <div class="profile-info">
+      <h2>Maggi Lima Sato Advocacia</h2>
+      <p>Página da empresa · Direito de Família, Sucessões e Planejamento Patrimonial</p>
+    </div>
+    <div class="period-badge">9 mar – 1 jun 2026 · 12 semanas</div>
+  </div>
+
+  <div class="metrics-grid">
+    <div class="metric-card">
+      <div class="label">Impressões (mai)</div>
+      <div class="value">639</div>
+      <div class="delta delta-up">▲ 16,4% vs mês anterior</div>
+    </div>
+    <div class="metric-card">
+      <div class="label">Reações (mai)</div>
+      <div class="value">19</div>
+      <div class="delta delta-down">▼ 9,5% vs mês anterior</div>
+    </div>
+    <div class="metric-card">
+      <div class="label">Comentários (mai)</div>
+      <div class="value">0</div>
+      <div class="delta delta-down">▼ 100%</div>
+    </div>
+    <div class="metric-card">
+      <div class="label">Seguidores</div>
+      <div class="value">420</div>
+      <div class="delta delta-neutral">Base da página</div>
+    </div>
+    <div class="metric-card">
+      <div class="label">Top Engajamento</div>
+      <div class="value">53,9%</div>
+      <div class="delta delta-up">Carrossel holding + divórcio</div>
+    </div>
+    <div class="metric-card">
+      <div class="label">Publicações (12 sem)</div>
+      <div class="value">15</div>
+      <div class="delta delta-neutral">~1,25 por semana</div>
+    </div>
+  </div>
+
+  <div class="chart-section">
+    <div class="section-title">Top 3 publicações por impressões — 12 semanas</div>
+    <div class="section-subtitle">9 mar – 1 jun 2026 · Página institucional</div>
+    <div class="chart-wrapper"><canvas id="chart-maggi"></canvas></div>
+  </div>
+
+  <div class="analysis-header">
+    <div class="analysis-badge" style="background: var(--maggi-light);">📊</div>
+    <h3>Relatório Executivo Estratégico</h3>
+    <span>9 mar – 1 jun 2026</span>
+  </div>
+
+  <div class="sections-grid">
+    <div class="analysis-section full-width">
+      <div class="sec-label">01 · Resumo Executivo</div>
+      <h4>Visão Geral do Período</h4>
+      <p>O escritório encerrou as 12 semanas com trajetória de crescimento de impressões em maio (+16,4%), sustentada por uma estratégia editorial coesa em torno dos temas <strong>empresas familiares, holding e divórcio patrimonial</strong>. Foram publicados 15 conteúdos — ritmo consistente de 1,25 publicações por semana para uma página institucional no setor jurídico.</p>
+      <div class="highlight-box" style="background: #fef3c7; border-left: 3px solid var(--maggi-mid);">
+        <strong>Destaque inequívoco:</strong> O carrossel sobre <em>holding familiar e divórcio</em> registrou 53,93% de taxa de engajamento com 89 cliques em apenas 178 impressões — 50% de CTR. Esse número é estruturalmente incomum e sinaliza demanda ativa e qualificada por conteúdo técnico prático neste formato.
+      </div>
+      <p><strong>Principal desafio:</strong> Ausência completa de comentários em maio e queda de 9,5% nas reações, mesmo com impressões crescendo. Os posts de Juliana Maggi Lima no formato de links externos (newsletter) não geram métricas rastreáveis pela plataforma — uma limitação estratégica de médio prazo que precisa ser endereçada.</p>
+      <p style="margin-top:10px"><strong>Principal oportunidade:</strong> O escritório opera com duas vozes distintas e complementares — Hannetie (técnico-jurídico denso) e Juliana (editorial-cultural, newsletters). Ainda não há sinergia explícita entre essas vozes no feed da empresa. Potencializar essa combinação é o diferencial mais acessível e pouco explorado.</p>
+    </div>
+
+    <div class="analysis-section">
+      <div class="sec-label">02 · Evolução dos Indicadores</div>
+      <h4>Leitura Crítica das Métricas</h4>
+      <p>As métricas gerais da página cobrem apenas o último mês (mai/2026). O engajamento por post nas 12 semanas revela o quadro completo:</p>
+      <ul>
+        <li><strong>Impressões ▲16,4%:</strong> crescimento consistente no mês. Indica que a página está ganhando distribuição orgânica, provavelmente impulsionada por maior consistência editorial e horário de publicação.</li>
+        <li><strong>CTR nos carrosséis:</strong> o documento sobre holding atingiu 50% de CTR — índice extremamente elevado. Usuários clicaram 1 a cada 2 vezes que viram o post. Isso indica intenção de leitura, não rolagem passiva.</li>
+        <li><strong>Reações x Cliques (padrão invertido):</strong> alto CTR com baixa reação é característico de público técnico e profissional — advogados, empresários, gestores patrimoniais. A audiência prefere consumir em profundidade a interagir de forma superficial.</li>
+        <li><strong>Comentários zero (mai):</strong> coerente com página jurídica. A conversa real tende a migrar para DM e WhatsApp após o post. Não é alerta crítico — é um padrão de comportamento do nicho.</li>
+        <li><strong>Seguidores (420):</strong> base pequena mas qualificada. Cada novo seguidor tem potencial de ser um cliente ou indicador em potencial.</li>
+      </ul>
+    </div>
+
+    <div class="analysis-section">
+      <div class="sec-label">03 · Análise dos Conteúdos</div>
+      <h4>O Que Performou — e Por Quê</h4>
+      <p><strong>Melhor engajamento absoluto:</strong> Carrossel "Holding familiar e divórcio" (26/03) — 178 imp, 89 cliques, 53,93% eng. O formato documento (carrossel/PDF) com conteúdo acionável e prático supera imagens estáticas porque entrega valor tangível: o usuário leva algo embora após a leitura.</p>
+      <p style="margin-top:10px"><strong>Maior alcance bruto:</strong> Vídeo Dia das Mães (10/05) — 200 imp, 11,5% eng. Conteúdo humanizador mostrando as pessoas do escritório gerou o maior alcance do período. Humanização amplifica distribuição orgânica no algoritmo do LinkedIn.</p>
+      <p style="margin-top:10px"><strong>Padrão de baixo desempenho:</strong> posts com excesso de informação técnica densa sem chamada à ação clara e sem elemento narrativo performam abaixo do potencial. Posts sobre curatela e incapacidade superveniente têm relevância real — mas precisam de tratamento narrativo para funcionar no feed.</p>
+      <p style="margin-top:10px"><strong>Posts de Juliana (newsletter):</strong> sem métricas rastreáveis por serem links externos. O formato contribui para fidelização de leitores existentes, mas não alimenta o algoritmo da página. Migrar trechos para postagem nativa é recomendação prioritária.</p>
+    </div>
+
+    <div class="analysis-section">
+      <div class="sec-label">04 · Insights sobre a Audiência</div>
+      <h4>Quem Está Consumindo Este Conteúdo</h4>
+      <p>O comportamento ao longo das 12 semanas revela um perfil específico e valioso:</p>
+      <ul>
+        <li><strong>Alta intenção de consumo técnico:</strong> CTR acima de 4% em posts sobre holding, regimes de bens e estrutura societária indica audiência que busca informação aplicável — não curiosidade superficial.</li>
+        <li><strong>Sensibilidade ao tema patrimonial-familiar:</strong> posts que conectam família e empresa consistentemente superam posts que tratam apenas do aspecto jurídico formal. A audiência se identifica com a situação antes de querer a solução técnica.</li>
+        <li><strong>Hipótese de perfil:</strong> fundadores, sócios e herdeiros de empresas familiares de médio porte navegando questões de sucessão, divórcio ou estruturação patrimonial. Possivelmente 35–55 anos, com empresa estabelecida.</li>
+        <li><strong>Ausência de comentários públicos ≠ desinteresse:</strong> públicos com questões patrimoniais não expõem suas situações em comentários abertos. A conversa real acontece em DM, WhatsApp ou ligação direta — o que torna cada conversão invisível mas real.</li>
+      </ul>
+    </div>
+
+    <div class="analysis-section">
+      <div class="sec-label">05 · Oportunidades Estratégicas</div>
+      <h4>Onde Está o Próximo Nível</h4>
+      <ul>
+        <li><strong>Série "Empresas Familiares — Da 1ª à 2ª Geração":</strong> há demanda clara por conteúdo sobre transição geracional. Uma série de 6–8 carrosséis cobrindo holding, protocolo familiar, testamento e governança poderia construir autoridade de referência nacional no nicho. Alto potencial de salvamento e compartilhamento por consultores e contadores.</li>
+        <li><strong>Cases práticos anonimizados:</strong> "O que acontece quando o sócio se casa em comunhão universal?" — narrativa de caso + problema + solução + instrumento jurídico. Alto CTR e alto potencial de conversão em leads qualificados.</li>
+        <li><strong>Vídeos de bastidores do escritório:</strong> o Dia das Mães performou justamente por mostrar quem está por trás. Entrevistas curtas da equipe, preparação para audiências ou eventos — sem revelar casos — humaniza a marca de forma sistemática.</li>
+        <li><strong>Artigos nativos LinkedIn:</strong> migrar os textos da newsletter de Juliana para artigos publicados dentro da plataforma, em vez de links externos, capturaria métricas reais e distribuição orgânica significativa.</li>
+      </ul>
+    </div>
+
+    <div class="analysis-section">
+      <div class="sec-label">06 · Recomendações para o Próximo Período</div>
+      <h4>Ações Prioritárias — Próximas 8 Semanas</h4>
+      <ul>
+        <li><strong>Aumentar proporção de carrosséis para 60% do mix:</strong> o dado é inequívoco — carrosséis geram 2–5x mais cliques que imagens estáticas por impressão. Cada post técnico informativo deve ser considerado como candidato a carrossel, não a imagem.</li>
+        <li><strong>Encerrar cada post com pergunta direta:</strong> "Sua empresa tem protocolo familiar?" ou "Como está o contrato social da sua sociedade?" Isso abre conversa no DM e sinaliza engajamento ao algoritmo.</li>
+        <li><strong>1 conteúdo humanizador por mês, sistematicamente:</strong> não apenas em datas comemorativas. Uma apresentação da equipe, um bastidor de evento ou uma conquista do time cumpre o mesmo papel do Dia das Mães em alcance.</li>
+        <li><strong>CTA explícito para geração de leads:</strong> o tráfego qualificado que o escritório gera não tem porta de entrada clara. "Quer entender como estruturar a entrada dos filhos na sua empresa? Envie uma mensagem." — um CTA por mês é o mínimo.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="learnings" style="border-left: 4px solid var(--maggi-mid);">
+    <h4>🎯 Três Aprendizados do Período</h4>
+    <div class="learning-item">
+      <div class="learning-num" style="background: var(--maggi-mid);">1</div>
+      <p><strong style="color:white">Formato supera tema.</strong> O carrossel sobre holding gerou 53,93% de engajamento — não porque holding é mais interessante que outros temas, mas porque o formato entregou valor consultivo de forma visual e portátil. Formato correto amplifica qualquer tema.</p>
+    </div>
+    <div class="learning-item">
+      <div class="learning-num" style="background: var(--maggi-mid);">2</div>
+      <p><strong style="color:white">Audiência jurídica não comenta, mas clica.</strong> CTR alto com comentários baixos não é indiferença — é o padrão de um público que consome com intenção e atua por canais privados. O funil começa no clique, não no comentário.</p>
+    </div>
+    <div class="learning-item">
+      <div class="learning-num" style="background: var(--maggi-mid);">3</div>
+      <p><strong style="color:white">Humanização como estratégia, não como exceção.</strong> O único vídeo do período teve o maior alcance bruto. Mostrar as pessoas do escritório expande a base e cria vínculo emocional que o conteúdo técnico, por mais qualificado, não consegue sozinho.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== HANNETIE ===================== -->
+<div id="panel-hannetie" class="tab-panel hannetie">
+  <div class="profile-header">
+    <div class="profile-avatar" style="background: var(--hannetie);">H</div>
+    <div class="profile-info">
+      <h2>Hannetie Koyama Sato</h2>
+      <p>Perfil pessoal · Advogada · Direito de Família e Sucessões · OAB/SP · Autora</p>
+    </div>
+    <div class="period-badge">4 mar – 1 jun 2026 · 90 dias</div>
+  </div>
+
+  <div class="metrics-grid">
+    <div class="metric-card">
+      <div class="label">Impressões (90d)</div>
+      <div class="value">4.909</div>
+      <div class="delta delta-up">▲ 1% vs período anterior</div>
+    </div>
+    <div class="metric-card">
+      <div class="label">Alcance (90d)</div>
+      <div class="value">1.475</div>
+      <div class="delta delta-neutral">Usuários únicos alcançados</div>
+    </div>
+    <div class="metric-card">
+      <div class="label">Impressões (365d)</div>
+      <div class="value">27.879</div>
+      <div class="delta delta-up">▲ 29% anual</div>
+    </div>
+    <div class="metric-card">
+      <div class="label">Alcance (365d)</div>
+      <div class="value">5.053</div>
+      <div class="delta delta-neutral">Usuários únicos</div>
+    </div>
+    <div class="metric-card">
+      <div class="label">Top Post (90d)</div>
+      <div class="value">987</div>
+      <div class="delta delta-up">imp · Stênio Garcia / usufruto</div>
+    </div>
+    <div class="metric-card">
+      <div class="label">Engajamento (90d)</div>
+      <div class="value">200</div>
+      <div class="delta delta-up">192 reações · 7 comentários</div>
+    </div>
+  </div>
+
+  <div class="chart-section">
+    <div class="section-title">Top 3 publicações — últimos 365 dias</div>
+    <div class="section-subtitle">jun 2025 – jun 2026 · Perfil pessoal · 27.879 impressões ▲29%</div>
+    <div class="chart-wrapper"><canvas id="chart-hannetie-365"></canvas></div>
+  </div>
+
+  <div class="chart-section" style="margin-top: 16px;">
+    <div class="section-title">Top 3 publicações — últimos 90 dias</div>
+    <div class="section-subtitle">4 mar – 1 jun 2026 · Perfil pessoal · 4.909 impressões ▲1%</div>
+    <div class="chart-wrapper"><canvas id="chart-hannetie-90"></canvas></div>
+  </div>
+
+  <div class="analysis-header">
+    <div class="analysis-badge" style="background: var(--hannetie-light);">📊</div>
+    <h3>Relatório Executivo Estratégico</h3>
+    <span>4 mar – 1 jun 2026</span>
+  </div>
+
+  <div class="sections-grid">
+    <div class="analysis-section full-width">
+      <div class="sec-label">01 · Resumo Executivo</div>
+      <h4>Visão Geral do Período</h4>
+      <p>Os 90 dias (mar–jun 2026) mostram estabilidade com sinais de crescimento: 4.909 impressões com variação de ▲1% em relação ao período anterior, e 1.475 usuários únicos alcançados. O conteúdo manteve presença consistente sem depender de um único post viral para sustentar os números.</p>
+      <div class="highlight-box" style="background: var(--hannetie-light); border-left: 3px solid var(--hannetie);">
+        <strong>Top Post (90d):</strong> "Stênio Garcia — o usufruto" gerou 987 impressões e 35 engajamentos no trimestre — mais que o dobro da média dos demais posts. Conteúdo que conecta caso real amplamente noticiado com análise jurídica precisa: a fórmula que funciona para a audiência de Hannetie.
+      </div>
+      <p><strong>Consistência editorial:</strong> os três posts de maior performance (Stênio Garcia, Brazil Conference Harvard/MIT e Direito de Família) mostram variedade de abordagem — caso midiático, bastidor profissional e post reflexivo — indicando que Hannetie tem repertório amplo, não depende de uma única fórmula.</p>
+      <p style="margin-top:10px"><strong>Trajetória anual:</strong> crescimento de 29% nas impressões em 365 dias (27.879 imp, 5.053 alcançados) confirma que a marca pessoal está em construção sólida e consistente. Hannetie está consolidando uma das referências mais robustas em Direito de Família no LinkedIn brasileiro.</p>
+    </div>
+
+    <div class="analysis-section">
+      <div class="sec-label">02 · Evolução dos Indicadores</div>
+      <h4>O Que os Números Revelam</h4>
+      <p>A leitura dos dois períodos (90d e 365d) mostra uma trajetória coerente e crescente:</p>
+      <ul>
+        <li><strong>Impressões 90d ▲1%:</strong> crescimento modesto, mas consistente. O perfil não depende de sazonalidade nem de um único conteúdo viral para manter o desempenho — sinal de audiência fidelizada e engajamento orgânico estável.</li>
+        <li><strong>Stênio Garcia (987 imp, 90d):</strong> top post do trimestre supera em 2,1x o segundo colocado. Casos midiáticos com análise jurídica precisa continuam sendo o formato de maior amplificação para o perfil de Hannetie.</li>
+        <li><strong>TJ-SP (1.209 imp) e Nomeação OAB/SP (1.175 imp):</strong> os melhores do ano inteiro são posts de narrativa pessoal — bastidor da advocacia e conquista profissional. A audiência reage a Hannetie como pessoa tanto quanto como especialista.</li>
+        <li><strong>Engajamento qualitativo:</strong> 65 comentários em 365 dias, com os picos nos posts de cunho pessoal. Narrativa abre conversa; informação técnica pura geralmente encerra.</li>
+      </ul>
+    </div>
+
+    <div class="analysis-section">
+      <div class="sec-label">03 · Análise dos Conteúdos</div>
+      <h4>A Fórmula Decodificada</h4>
+      <p>Os melhores posts dos últimos 90 e 365 dias compartilham uma estrutura que pode ser replicada:</p>
+      <ul>
+        <li><strong>Stênio Garcia — usufruto (90d):</strong> caso real amplamente noticiado → análise jurídica precisa e acessível → posicionamento autoral. O post não usou a mídia como isca. Usou como ponto de entrada para explicar um instituto jurídico real. 987 imp e 35 eng no trimestre.</li>
+        <li><strong>TJ-SP / sustentação oral (365d):</strong> relato de experiência pessoal → reflexão sobre a transformação da advocacia → identidade profissional. Zero jurisprudência. Zero artigo de lei. Narrativa pura. 1.209 imp e 6 comentários — o triplo da média.</li>
+        <li><strong>Nomeação OAB/SP — Comitê de Gênero (365d):</strong> conquista profissional → contexto do que significa institucionalmente → agradecimento nominativo. 1.175 imp, 7 comentários e 74 reações. A audiência quer celebrar junto.</li>
+      </ul>
+      <p style="margin-top:10px"><strong>Padrão inequívoco:</strong> Humanização › Técnica pura. Narrativa › Informação. Voz autoral › Explicação genérica.</p>
+    </div>
+
+    <div class="analysis-section">
+      <div class="sec-label">04 · Insights sobre a Audiência</div>
+      <h4>O Que o Comportamento Revela</h4>
+      <ul>
+        <li><strong>A audiência não quer um professor:</strong> quer uma perspectiva. Posts que interpretam situações da vida real com base na lei performam muito acima dos posts que apenas explicam a lei. A diferença entre essas duas abordagens é o que separa autoridade de informação.</li>
+        <li><strong>A audiência se identifica com a trajetória:</strong> os posts sobre o início na advocacia, os corredores do TJ, a transformação com a tecnologia ressoam porque muitos seguidores são advogados ou acompanham a advocacia de perto. Hannetie não é uma referência distante — é uma colega que chegou mais longe.</li>
+        <li><strong>Cultura como linguagem de entrada:</strong> o post do Stênio Garcia prova que há uma audiência culturalmente ativa que aprecia quando o conteúdo jurídico parte de um caso real amplamente noticiado. Não é simplificação. É acessibilidade inteligente — e o melhor post do trimestre confirma isso.</li>
+        <li><strong>Hipótese de personas:</strong> advogadas mulheres (30–45 anos), profissionais de RH e gestão, pessoas passando por processos familiares ou de planejamento patrimonial, e um segmento crescente de fora da bolha jurídica atraído pela voz autoral.</li>
+      </ul>
+    </div>
+
+  </div>
+
+  <div class="learnings" style="border-left: 4px solid var(--hannetie);">
+    <h4>🎯 Três Aprendizados do Período</h4>
+    <div class="learning-item">
+      <div class="learning-num" style="background: var(--hannetie);">1</div>
+      <p><strong style="color:white">Crescimento anual de 29% confirma trajetória consistente.</strong> Os 27.879 impressões em 365 dias e 5.053 usuários alcançados mostram que a marca pessoal está em expansão real. O risco não é de declínio — é de estagnação se a cadência de publicação cair.</p>
+    </div>
+    <div class="learning-item">
+      <div class="learning-num" style="background: var(--hannetie);">2</div>
+      <p><strong style="color:white">Casos midiáticos com análise jurídica são o maior amplificador do perfil.</strong> Stênio Garcia no trimestre e TJ-SP no ano inteiro mostram que conectar realidade noticiada com expertise jurídica gera o dobro das impressões médias. Esta é a fórmula de crescimento acelerado de Hannetie.</p>
+    </div>
+    <div class="learning-item">
+      <div class="learning-num" style="background: var(--hannetie);">3</div>
+      <p><strong style="color:white">Estabilidade no 90d com ▲1% é conquista, não estagnação.</strong> Manter 4.909 impressões com crescimento positivo sem depender de um único post viral indica audiência fidelizada e algoritmo que confia no perfil. A base está sólida para acelerar nos próximos trimestres.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== JULIANA ===================== -->
+<div id="panel-juliana" class="tab-panel juliana">
+  <div class="profile-header">
+    <div class="profile-avatar" style="background: var(--juliana);">JM</div>
+    <div class="profile-info">
+      <h2>Juliana Maggi Lima</h2>
+      <p>Perfil pessoal · Sócia fundadora · Editora da newsletter "Tudo é Família"</p>
+    </div>
+    <div class="period-badge">Dados em coleta</div>
+  </div>
+
+  <div class="no-data">
+    <h3>Dados do perfil pessoal ainda não disponíveis</h3>
+    <p>Para atualizar este painel: faça login com a conta de Juliana Maggi Lima<br>e acesse linkedin.com/analytics/creator/content/?timeRange=past_365_days</p>
+  </div>
+
+  <div class="analysis-header">
+    <div class="analysis-badge" style="background: var(--juliana-light);">📊</div>
+    <h3>Contexto Estratégico Disponível</h3>
+    <span>Com base em dados da página MLSa · 12 semanas</span>
+  </div>
+
+  <div class="sections-grid">
+    <div class="analysis-section full-width">
+      <div class="sec-label">Observações a partir dos dados da página institucional</div>
+      <h4>O Que Já Sabemos Sobre o Posicionamento de Juliana</h4>
+      <p>Embora os dados do perfil pessoal ainda não estejam disponíveis, os registros da página institucional revelam informações estratégicas relevantes sobre o posicionamento editorial de Juliana no período de 12 semanas.</p>
+      <p style="margin-top:10px">Juliana é autora da newsletter <strong>"Tudo é Família"</strong> — publicação que aborda o universo familiar por um olhar cultural, literário e sociológico, em contraponto ao conteúdo técnico-jurídico de Hannetie. Sua voz cobre temas como desigualdade social, envelhecimento, maternidade, gênero e referências de cultura (séries, filmes, livros).</p>
+      <div class="highlight-box" style="background: var(--juliana-light); border-left: 3px solid var(--juliana);">
+        <strong>Temas identificados no período (mar–jun 2026):</strong> Série "O Testamento: O Segredo de Anita Harley" · Desigualdade e capital familiar · Geração sanduíche e cuidado de idosos · Curadoria cultural · Reflexão sobre envelhecimento e 40 anos. Total de 5 publicações como links externos — nenhuma com métricas rastreáveis pela plataforma.
+      </div>
+      <p><strong>Limitação estratégica identificada:</strong> todos os posts de Juliana na página institucional são publicados como links externos para a newsletter. Isso impede qualquer mensuração de alcance, impressões ou engajamento. Para uma voz editorial com esse potencial, é uma lacuna de distribuição relevante que precisa ser endereçada.</p>
+      <p style="margin-top:10px"><strong>Oportunidade imediata:</strong> publicar ao menos 2 posts por mês em formato nativo (texto + carrossel ou artigo LinkedIn) em vez de links externos. Isso permitirá mensurar alcance real, amplificar via algoritmo, construir autoridade dentro da plataforma e integrar métricas ao dashboard.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== JAMILLY ===================== -->
+<div id="panel-jamilly" class="tab-panel jamilly">
+  <div class="profile-header">
+    <div class="profile-avatar" style="background: var(--jamilly);">JF</div>
+    <div class="profile-info">
+      <h2>Jamilly Farah</h2>
+      <p>Perfil pessoal · Consultora de Marketing Jurídico · LinkedIn Strategist</p>
+    </div>
+    <div class="period-badge">365 dias · jun 2025 – jun 2026 *</div>
+  </div>
+
+  <div class="metrics-grid">
+    <div class="metric-card">
+      <div class="label">Impressões (365d)</div>
+      <div class="value">3.353</div>
+      <div class="delta delta-down">▼ 26,9% vs ano anterior</div>
+    </div>
+    <div class="metric-card">
+      <div class="label">Alcance (365d)</div>
+      <div class="value">1.210</div>
+      <div class="delta delta-neutral">Usuários únicos</div>
+    </div>
+    <div class="metric-card">
+      <div class="label">Top Post</div>
+      <div class="value">660</div>
+      <div class="delta delta-up">imp · Expectativa vs realidade</div>
+    </div>
+    <div class="metric-card">
+      <div class="label">2° Post</div>
+      <div class="value">556</div>
+      <div class="delta delta-up">imp · Impulsionar post?</div>
+    </div>
+    <div class="metric-card">
+      <div class="label">3° Post</div>
+      <div class="value">535</div>
+      <div class="delta delta-up">imp · Mensagens dizem mais</div>
+    </div>
+    <div class="metric-card">
+      <div class="label">Nota</div>
+      <div class="value" style="font-size:13px; padding-top:4px;">*365d</div>
+      <div class="delta delta-neutral">Atualizar com login pessoal para dados de 90 dias</div>
+    </div>
+  </div>
+
+  <div class="chart-section">
+    <div class="section-title">Top 3 publicações por impressões</div>
+    <div class="section-subtitle">jun 2025 – jun 2026 · *Dados de referência anual</div>
+    <div class="chart-wrapper"><canvas id="chart-jamilly"></canvas></div>
+  </div>
+
+  <div class="analysis-header">
+    <div class="analysis-badge" style="background: var(--jamilly-light);">📊</div>
+    <h3>Relatório Executivo Estratégico</h3>
+    <span>Referência anual · 365 dias</span>
+  </div>
+
+  <div class="sections-grid">
+    <div class="analysis-section full-width">
+      <div class="sec-label">01 · Resumo Executivo</div>
+      <h4>Visão Geral do Período</h4>
+      <p>O período anual mostra uma queda de 26,9% nas impressões — uma contração relevante que merece diagnóstico honesto. Há três hipóteses não excludentes: <strong>(1)</strong> redução de frequência de publicação em fases de crescimento operacional do negócio; <strong>(2)</strong> necessidade de renovação temática ou de formato para o atual estágio da audiência; <strong>(3)</strong> mudança no comportamento do algoritmo para perfis no nicho de consultoria.</p>
+      <div class="highlight-box" style="background: var(--jamilly-light); border-left: 3px solid var(--jamilly);">
+        <strong>Ponto de atenção estratégico:</strong> Para uma consultora de marketing jurídico, o LinkedIn não é apenas canal de conteúdo — é o portfólio principal. Uma queda de 26,9% nas impressões tem implicação direta na percepção de autoridade de potenciais clientes que pesquisam o perfil antes de contratar. O que está no feed é o primeiro argumento de venda.
+      </div>
+      <p><strong>Destaque positivo:</strong> Os três posts de maior desempenho têm em comum uma abordagem direta, provocativa e baseada em realidade — "Expectativa vs realidade", "Impulsionar post?", "Mensagens dizem mais". Todos questionam crenças do mercado. Essa linha editorial tem ressonância clara e diferenciada com a audiência.</p>
+      <p style="margin-top:10px"><strong>Principal oportunidade:</strong> Jamilly ocupa uma posição única: é simultaneamente praticante e estrategista de marketing jurídico. Mostrar resultados reais dos clientes — o que foi feito, por que, o que aconteceu — é o tipo de conteúdo que nenhum concorrente consegue replicar. Esse ativo está subutilizado.</p>
+    </div>
+
+    <div class="analysis-section">
+      <div class="sec-label">02 · Evolução dos Indicadores</div>
+      <h4>Diagnóstico da Queda</h4>
+      <p>A queda de 26,9% em 365 dias é significativa, mas o contexto e os padrões precisam ser considerados:</p>
+      <ul>
+        <li><strong>Top 3 entre 535–660 imp:</strong> variação pequena entre os melhores posts sugere audiência engajada e estável, mas com dificuldade de expansão para fora da bolha atual. O público existente responde bem — o problema é o crescimento lateral.</li>
+        <li><strong>Alcance de 1.210 usuários únicos:</strong> base que já conhece o trabalho. O desafio não é manter essa base — é expandi-la para novos perfis de tomadores de decisão no jurídico.</li>
+        <li><strong>Hipótese de frequência:</strong> se o ritmo de publicação reduziu durante um período de crescimento do negócio, a queda de impressões é esperada e reversível. Cada retomada de cadência tende a recuperar alcance mais rápido do que a fase inicial de crescimento.</li>
+        <li><strong>Nota metodológica:</strong> esses dados são de 365 dias. Para diagnóstico preciso dos últimos 90 dias, é necessário acessar o painel com a conta pessoal logada — o que permitirá identificar se a queda está distribuída ao longo do ano ou concentrada em um período específico.</li>
+      </ul>
+    </div>
+
+    <div class="analysis-section">
+      <div class="sec-label">03 · Análise dos Conteúdos</div>
+      <h4>A Linha Editorial que Funciona</h4>
+      <p>Os três posts de topo revelam um padrão editorial claro, replicável e diferenciador:</p>
+      <ul>
+        <li><strong>"Expectativa vs realidade" (660 imp):</strong> contraste que quebra expectativas do público. Funciona porque advogados e escritórios projetam expectativas idealizadas sobre marketing — e precisam de calibração realista por alguém com autoridade prática. Jamilly tem essa credibilidade.</li>
+        <li><strong>"Impulsionar post?" (556 imp):</strong> pergunta direta sobre dúvida real e frequente. Alto volume de busca implícita — muitos advogados se fazem essa pergunta semanalmente. Responder com dados posiciona como referência prática imediata.</li>
+        <li><strong>"Mensagens dizem mais" (535 imp):</strong> conteúdo sobre comportamento e comunicação, não apenas tática. A audiência responde quando o conteúdo toca em soft skills e mindset, não só em ferramentas. É o nível mais profundo de conexão com o público.</li>
+      </ul>
+      <p style="margin-top:10px"><strong>Padrão:</strong> conteúdo que <em>quebra crenças</em> ou <em>responde perguntas específicas e frequentes</em> supera consistentemente conteúdo informativo genérico.</p>
+    </div>
+
+    <div class="analysis-section">
+      <div class="sec-label">04 · Insights sobre a Audiência</div>
+      <h4>Quem Acompanha e Com Que Expectativa</h4>
+      <ul>
+        <li><strong>Advogados em fase de estruturação de marca:</strong> público que mais engaja com "Expectativa vs realidade" e "Impulsionar post?" está navegando as primeiras decisões de marketing jurídico. Precisa de orientação prática, não de teoria de marketing geral.</li>
+        <li><strong>Tomadores de decisão avaliando contratar consultoria:</strong> esse segmento pesquisa o LinkedIn antes de contratar. O que encontram no perfil define a percepção de autoridade. Cada post é também um argumento de venda implícito.</li>
+        <li><strong>Pares do mercado (consultores, gestores de marketing):</strong> um segmento que observa, referencia e raramente comenta publicamente. Importante para reputação de mercado e para indicações — mesmo sem converter diretamente.</li>
+        <li><strong>Dores centrais identificadas:</strong> medo de investir em marketing sem ver resultado; dificuldade em medir retorno; insegurança sobre o que é "adequado" para a advocacia; frustração com soluções genéricas vendidas como especializadas. Posts que endereçam esses medos diretamente performam acima da média.</li>
+      </ul>
+    </div>
+
+    <div class="analysis-section">
+      <div class="sec-label">05 · Oportunidades Estratégicas</div>
+      <h4>O Diferencial que Está Sendo Subutilizado</h4>
+      <ul>
+        <li><strong>Cases reais com autorização dos clientes:</strong> "Como o escritório X passou de 0 para 3.000 impressões em 6 meses" — esse tipo de conteúdo é impossível de replicar por quem não tem os dados. Jamilly tem. Um case por mês seria o pilar de autoridade mais poderoso disponível.</li>
+        <li><strong>Série "Mitos do Marketing Jurídico":</strong> cada post desmonta uma crença equivocada com dado real. "Mais seguidores = mais clientes? Não necessariamente." — 8 episódios, cadência semanal. Alto potencial de salvamento, compartilhamento e geração de leads qualificados.</li>
+        <li><strong>Transparência sobre o processo de consultoria:</strong> como funciona uma estratégia de LinkedIn para advogados? O que acontece no primeiro mês, no terceiro, no sexto? Educar o mercado sobre o processo gera leads mais qualificados e reduz objeção na venda.</li>
+        <li><strong>Posicionamento como professora além do feed:</strong> workshops, lives, masterclasses curtas. Amplifica autoridade além do algoritmo e gera conteúdo reutilizável. O mercado jurídico tem apetite por formação especializada nessa área.</li>
+      </ul>
+    </div>
+
+    <div class="analysis-section">
+      <div class="sec-label">06 · Recomendações para o Próximo Período</div>
+      <h4>Reversão da Queda em 90 Dias</h4>
+      <ul>
+        <li><strong>Retomar cadência mínima de 2 posts por semana:</strong> consistência é o principal motor de crescimento orgânico no LinkedIn. Cada semana sem post é uma semana de decaimento algorítmico. Um texto de 150 palavras bem posicionado vale mais que silêncio — o volume importa.</li>
+        <li><strong>1 post de case por mês:</strong> resultado real de cliente (anonimizado se necessário). Contexto + estratégia + resultado. Alto potencial de compartilhamento por pessoas que querem os mesmos resultados. É o conteúdo que converte.</li>
+        <li><strong>1 post provocativo sobre crença equivocada de mercado por mês:</strong> o padrão "Expectativa vs realidade" funciona — criar variações: "O que faço quando um cliente quer post todo dia", "Por que engajamento não é o que você pensa", "LinkedIn jurídico não é Instagram jurídico".</li>
+        <li><strong>Atualizar painel para dados de 90 dias:</strong> fazer login com a conta pessoal e coletar as métricas do último trimestre. Decisões de conteúdo baseadas em 90 dias são substancialmente mais precisas do que em 365 — permitem identificar o que está funcionando agora, não o que funcionou no ano.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="learnings" style="border-left: 4px solid var(--jamilly);">
+    <h4>🎯 Três Aprendizados do Período</h4>
+    <div class="learning-item">
+      <div class="learning-num" style="background: var(--jamilly);">1</div>
+      <p><strong style="color:white">Queda de 26,9% é reversível com consistência — não é uma crise de posicionamento.</strong> A audiência existente continua respondendo a conteúdo de qualidade. O problema não é o público nem a proposta de valor. É a cadência e possivelmente a diversidade de formatos.</p>
+    </div>
+    <div class="learning-item">
+      <div class="learning-num" style="background: var(--jamilly);">2</div>
+      <p><strong style="color:white">A voz que quebra crenças é a mais poderosa neste nicho.</strong> Os três melhores posts confrontam expectativas do mercado. Para uma consultora, esse posicionamento é mais valioso que ensinar técnicas — porque posiciona como árbitro do que funciona de verdade.</p>
+    </div>
+    <div class="learning-item">
+      <div class="learning-num" style="background: var(--jamilly);">3</div>
+      <p><strong style="color:white">O portfólio mais poderoso ainda está não publicado.</strong> Os resultados dos clientes, as estratégias que funcionaram e as que não funcionaram, as histórias reais — esses dados existem e nenhum concorrente tem acesso. Esse conteúdo diferencia de forma definitiva e irreplicável.</p>
+    </div>
+  </div>
+</div>
+
+<div class="footer-note">
+  Dashboard gerado com dados coletados via LinkedIn Analytics ·
+  Maggi Lima Sato: 9 mar–1 jun 2026 (12 semanas · engajamento por post) ·
+  Hannetie: 4 mar–1 jun 2026 (90 dias) ·
+  Juliana: sem dados de perfil pessoal ·
+  Jamilly: 365 dias (conta não disponível nesta sessão — atualizar com login pessoal)
+</div>
+
+<script>
+function showTab(id, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.className = 'tab-btn');
+  document.getElementById('panel-' + id).classList.add('active');
+  btn.className = 'tab-btn active-' + id;
+}
+
+function makeChart(id, labels, data, color) {
+  const ctx = document.getElementById(id);
+  if (!ctx) return;
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Impressões',
+        data: data,
+        backgroundColor: color + '22',
+        borderColor: color,
+        borderWidth: 2,
+        borderRadius: 6,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => ' ' + ctx.parsed.y.toLocaleString('pt-BR') + ' impressões'
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: {
+            font: { size: 11 },
+            maxRotation: 20,
+            callback: function(val) {
+              const label = this.getLabelForValue(val);
+              return label.length > 32 ? label.substring(0, 32) + '…' : label;
+            }
+          }
+        },
+        y: {
+          beginAtZero: true,
+          grid: { color: '#f1f5f9' },
+          ticks: { font: { size: 11 } }
+        }
+      }
+    }
+  });
+}
+
+window.addEventListener('load', function() {
+  makeChart('chart-maggi',
+    ['Vídeo — Dia das Mães', 'Holding familiar e divórcio (doc)', 'Ex-cônjuge como sócio?'],
+    [200, 178, 170],
+    '#b45309');
+
+  makeChart('chart-hannetie-365',
+    ['TJ-SP — Sustentação oral', 'Nomeação OAB/SP (Gênero)', 'Acessibilidade — Reflexão'],
+    [1209, 1175, 1072],
+    '#7c3aed');
+
+  makeChart('chart-hannetie-90',
+    ['Stênio Garcia — usufruto', 'Brazil Conference (Harvard/MIT)', 'Direito de Família — reflexão'],
+    [987, 463, 444],
+    '#7c3aed');
+
+  makeChart('chart-jamilly',
+    ['Expectativa vs realidade', 'Impulsionar post?', 'Mensagens dizem mais'],
+    [660, 556, 535],
+    '#0077b5');
+});
+</script>
+</body>
+</html>
