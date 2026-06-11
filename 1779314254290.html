@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<script type="application/json" id="cowork-artifact-meta">
+{
+  "name": "Linkedin Dashboard Clientes",
+  "schemaVersion": 1,
+  "description": "Dashboard de performance do LinkedIn por cliente. Dados reais coletados via LinkedIn Analytics para Jamilly Farah (365 dias). Estrutura preparada para 7 clientes: Hannetie Sato, Juliana Maggi Lima, Maggi Lima Sato, Naus Consultoria, Bianca Azzi, Maria Clara Carmo e Camila Badaró."
+}
+</script>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard LinkedIn — Clientes</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" integrity="sha384-iU8HYtnGQ8Cy4zl7gbNMOhsDTTKX02BTXptVP/vqAWIaTfM7isw76iyZCsjL2eVi" crossorigin="anonymous"></script>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f2f5; color: #1a1a2e; min-height: 100vh; }
+
+  /* HEADER */
+  .header { background: linear-gradient(135deg, #0077b5 0%, #005582 100%); color: white; padding: 20px 24px 0; }
+  .header-top { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+  .header-top svg { width: 28px; height: 28px; fill: white; opacity: 0.9; }
+  .header-top h1 { font-size: 18px; font-weight: 700; }
+  .header-top .subtitle { font-size: 12px; opacity: 0.75; margin-top: 2px; }
+  .updated-badge { margin-left: auto; background: rgba(255,255,255,0.15); border-radius: 20px; padding: 4px 12px; font-size: 11px; white-space: nowrap; }
+
+  /* TABS */
+  .tabs { display: flex; gap: 2px; overflow-x: auto; padding-bottom: 0; scrollbar-width: none; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab { padding: 10px 16px; font-size: 12px; font-weight: 600; border: none; background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.7); cursor: pointer; border-radius: 8px 8px 0 0; white-space: nowrap; transition: all 0.2s; }
+  .tab:hover { background: rgba(255,255,255,0.2); color: white; }
+  .tab.active { background: #f0f2f5; color: #0077b5; }
+  .tab .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 5px; vertical-align: middle; }
+  .dot-green { background: #22c55e; }
+  .dot-gray { background: #94a3b8; }
+  .dot-soon { background: #f59e0b; }
+
+  /* CONTENT */
+  .content { padding: 20px; }
+  .client-panel { display: none; }
+  .client-panel.active { display: block; }
+
+  /* METRIC CARDS */
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .card { background: white; border-radius: 12px; padding: 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+  .card-label { font-size: 11px; color: #64748b; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .card-value { font-size: 28px; font-weight: 700; color: #1a1a2e; line-height: 1; }
+  .card-value.big { font-size: 32px; }
+  .card-change { font-size: 11px; margin-top: 4px; }
+  .card-change.up { color: #22c55e; }
+  .card-change.down { color: #ef4444; }
+  .card-change.neutral { color: #94a3b8; }
+  .card-period { font-size: 10px; color: #94a3b8; margin-top: 2px; }
+
+  /* CHART */
+  .chart-wrapper { background: white; border-radius: 12px; padding: 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); margin-bottom: 20px; }
+  .chart-title { font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 12px; }
+  .chart-container { position: relative; height: 160px; }
+
+  /* TOP POSTS */
+  .section-title { font-size: 13px; font-weight: 700; color: #374151; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+  .posts-list { background: white; border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); overflow: hidden; margin-bottom: 20px; }
+  .post-item { padding: 14px 16px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; gap: 14px; }
+  .post-item:last-child { border-bottom: none; }
+  .post-rank { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+  .rank-1 { background: #fef3c7; color: #d97706; }
+  .rank-2 { background: #f1f5f9; color: #475569; }
+  .rank-3 { background: #fff7ed; color: #ea580c; }
+  .post-text { flex: 1; font-size: 12px; color: #374151; line-height: 1.4; }
+  .post-text strong { display: block; font-weight: 600; margin-bottom: 2px; }
+  .post-text span { color: #94a3b8; font-size: 11px; }
+  .post-metrics { display: flex; gap: 12px; flex-shrink: 0; text-align: right; }
+  .post-metric { text-align: center; }
+  .post-metric-val { font-size: 14px; font-weight: 700; color: #0077b5; }
+  .post-metric-lbl { font-size: 10px; color: #94a3b8; }
+
+  /* NO DATA */
+  .no-data { background: white; border-radius: 12px; padding: 40px 24px; text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+  .no-data-icon { font-size: 40px; margin-bottom: 12px; }
+  .no-data h3 { font-size: 15px; font-weight: 600; color: #374151; margin-bottom: 6px; }
+  .no-data p { font-size: 12px; color: #94a3b8; line-height: 1.6; max-width: 280px; margin: 0 auto 16px; }
+  .no-data code { background: #f1f5f9; border-radius: 6px; padding: 2px 7px; font-size: 11px; color: #0077b5; font-family: monospace; }
+
+  /* COMING SOON */
+  .coming-soon { background: white; border-radius: 12px; padding: 40px 24px; text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,0.06); border: 2px dashed #e2e8f0; }
+  .coming-soon h3 { font-size: 14px; font-weight: 600; color: #94a3b8; margin-bottom: 6px; }
+  .coming-soon p { font-size: 12px; color: #cbd5e1; }
+
+  /* INFO BOX */
+  .info-box { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 12px 14px; margin-bottom: 16px; font-size: 12px; color: #1d4ed8; line-height: 1.5; }
+  .info-box strong { font-weight: 600; }
+
+  /* PERIOD BADGE */
+  .period-badge { background: #eff6ff; color: #0077b5; font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 20px; }
+
+  /* PROFILE INFO */
+  .profile-info { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+  .profile-avatar { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #0077b5, #00a0dc); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 14px; flex-shrink: 0; }
+  .profile-name { font-size: 14px; font-weight: 700; color: #1a1a2e; }
+  .profile-type { font-size: 11px; color: #94a3b8; }
+  .profile-url { font-size: 11px; color: #0077b5; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+    <div>
+      <div style="font-size:16px;font-weight:700;">Dashboard LinkedIn</div>
+      <div class="subtitle">Gestão de conteúdo por cliente</div>
+    </div>
+    <div class="updated-badge">Atualizado: 20/05/2026</div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="showClient('jamilly')"><span class="dot dot-green"></span>Jamilly Farah</button>
+    <button class="tab" onclick="showClient('hannetie')"><span class="dot dot-gray"></span>Hannetie Sato</button>
+    <button class="tab" onclick="showClient('juliana')"><span class="dot dot-gray"></span>Juliana Maggi Lima</button>
+    <button class="tab" onclick="showClient('escritorio')"><span class="dot dot-gray"></span>Maggi Lima Sato</button>
+    <button class="tab" onclick="showClient('naus')"><span class="dot dot-soon"></span>Naus Consultoria</button>
+    <button class="tab" onclick="showClient('bianca')"><span class="dot dot-soon"></span>Bianca Azzi</button>
+    <button class="tab" onclick="showClient('mariaclara')"><span class="dot dot-soon"></span>Maria Clara Carmo</button>
+    <button class="tab" onclick="showClient('camila')"><span class="dot dot-soon"></span>Camila Badaró</button>
+  </div>
+</div>
+
+<div class="content">
+
+  <!-- JAMILLY FARAH -->
+  <div id="panel-jamilly" class="client-panel active">
+    <div class="profile-info">
+      <div class="profile-avatar">JF</div>
+      <div>
+        <div class="profile-name">Jamilly Farah</div>
+        <div class="profile-type">Perfil pessoal · Legal Copywriter & Marketing Jurídico</div>
+        <div class="profile-url">linkedin.com/in/jamillyfarah</div>
+      </div>
+    </div>
+
+    <div class="info-box">
+      <strong>Dados coletados diretamente do LinkedIn Analytics</strong> · Período: últimos 365 dias (mai/2025 → mai/2026)
+    </div>
+
+    <div class="cards">
+      <div class="card">
+        <div class="card-label">Impressões totais</div>
+        <div class="card-value big">3.353</div>
+        <div class="card-change down">▼ 26,9% vs ano anterior</div>
+        <div class="card-period">Mai 2025 – Mai 2026</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Usuários alcançados</div>
+        <div class="card-value">1.210</div>
+        <div class="card-change down">▼ 26,9% vs ano anterior</div>
+        <div class="card-period">Mai 2025 – Mai 2026</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Melhor post</div>
+        <div class="card-value">660</div>
+        <div class="card-change neutral">impressões</div>
+        <div class="card-period">Expectativa vs realidade</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Posts ativos</div>
+        <div class="card-value">3+</div>
+        <div class="card-change neutral">nos últimos 7 dias</div>
+        <div class="card-period">Últimos 365 dias</div>
+      </div>
+    </div>
+
+    <div class="chart-wrapper">
+      <div class="chart-title">Impressões — Top 3 Posts</div>
+      <div class="chart-container">
+        <canvas id="chart-jamilly"></canvas>
+      </div>
+    </div>
+
+    <div class="section-title">
+      🏆 Publicações de melhor desempenho
+      <span class="period-badge">Mai 2025 – Mai 2026</span>
+    </div>
+    <div class="posts-list">
+      <div class="post-item">
+        <div class="post-rank rank-1">1</div>
+        <div class="post-text">
+          <strong>Expectativa versus realidade no marketing jurídico...</strong>
+          <span>Meu cliente escreveu a frase do print rindo. E eu ri junto.</span>
+        </div>
+        <div class="post-metrics">
+          <div class="post-metric">
+            <div class="post-metric-val">660</div>
+            <div class="post-metric-lbl">impressões</div>
+          </div>
+          <div class="post-metric">
+            <div class="post-metric-val">10</div>
+            <div class="post-metric-lbl">reações</div>
+          </div>
+        </div>
+      </div>
+      <div class="post-item">
+        <div class="post-rank rank-2">2</div>
+        <div class="post-text">
+          <strong>Impulsionar post informativo é permitido? Usar print de avaliação no Google pode?</strong>
+          <span>E repostar depoimento de cliente nas redes?...</span>
+        </div>
+        <div class="post-metrics">
+          <div class="post-metric">
+            <div class="post-metric-val">556</div>
+            <div class="post-metric-lbl">impressões</div>
+          </div>
+          <div class="post-metric">
+            <div class="post-metric-val">22</div>
+            <div class="post-metric-lbl">reações</div>
+          </div>
+          <div class="post-metric">
+            <div class="post-metric-val">4</div>
+            <div class="post-metric-lbl">comentários</div>
+          </div>
+        </div>
+      </div>
+      <div class="post-item">
+        <div class="post-rank rank-3">3</div>
+        <div class="post-text">
+          <strong>Algumas mensagens dizem muito mais do que parecem.</strong>
+          <span>Principalmente quando chegam depois de um trabalho...</span>
+        </div>
+        <div class="post-metrics">
+          <div class="post-metric">
+            <div class="post-metric-val">535</div>
+            <div class="post-metric-lbl">impressões</div>
+          </div>
+          <div class="post-metric">
+            <div class="post-metric-val">9</div>
+            <div class="post-metric-lbl">reações</div>
+          </div>
+          <div class="post-metric">
+            <div class="post-metric-val">4</div>
+            <div class="post-metric-lbl">comentários</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HANNETIE SATO -->
+  <div id="panel-hannetie" class="client-panel">
+    <div class="profile-info">
+      <div class="profile-avatar" style="background:linear-gradient(135deg,#7c3aed,#a855f7)">HS</div>
+      <div>
+        <div class="profile-name">Hannetie Sato</div>
+        <div class="profile-type">Perfil pessoal · Cliente ativo</div>
+      </div>
+    </div>
+    <div class="no-data">
+      <div class="no-data-icon">📊</div>
+      <h3>Dados ainda não coletados</h3>
+      <p>Para coletar os dados do LinkedIn desta cliente, faça login na conta da Hannetie e peça:</p>
+      <p><code>"Atualize os dados da Hannetie Sato no dashboard"</code></p>
+    </div>
+  </div>
+
+  <!-- JULIANA MAGGI LIMA -->
+  <div id="panel-juliana" class="client-panel">
+    <div class="profile-info">
+      <div class="profile-avatar" style="background:linear-gradient(135deg,#059669,#10b981)">JM</div>
+      <div>
+        <div class="profile-name">Juliana Maggi Lima</div>
+        <div class="profile-type">Perfil pessoal · Cliente ativa</div>
+      </div>
+    </div>
+    <div class="no-data">
+      <div class="no-data-icon">📊</div>
+      <h3>Dados ainda não coletados</h3>
+      <p>Para coletar os dados do LinkedIn desta cliente, faça login na conta da Juliana e peça:</p>
+      <p><code>"Atualize os dados da Juliana Maggi Lima no dashboard"</code></p>
+    </div>
+  </div>
+
+  <!-- MAGGI LIMA SATO (escritório) -->
+  <div id="panel-escritorio" class="client-panel">
+    <div class="profile-info">
+      <div class="profile-avatar" style="background:linear-gradient(135deg,#dc2626,#f87171)">ML</div>
+      <div>
+        <div class="profile-name">Maggi Lima Sato</div>
+        <div class="profile-type">Página de empresa · Cliente ativo</div>
+      </div>
+    </div>
+    <div class="no-data">
+      <div class="no-data-icon">🏢</div>
+      <h3>Dados ainda não coletados</h3>
+      <p>Esta é uma página de empresa. Para coletar os dados, acesse como administrador da página e peça:</p>
+      <p><code>"Atualize os dados do escritório Maggi Lima Sato no dashboard"</code></p>
+    </div>
+  </div>
+
+  <!-- NAUS CONSULTORIA -->
+  <div id="panel-naus" class="client-panel">
+    <div class="profile-info">
+      <div class="profile-avatar" style="background:linear-gradient(135deg,#f59e0b,#fbbf24)">NC</div>
+      <div>
+        <div class="profile-name">Naus Consultoria</div>
+        <div class="profile-type">Em breve · Cliente futuro</div>
+      </div>
+    </div>
+    <div class="coming-soon">
+      <h3>🕐 Em breve</h3>
+      <p>Este cliente ainda não foi integrado ao dashboard.<br>Dados serão adicionados quando o atendimento iniciar.</p>
+    </div>
+  </div>
+
+  <!-- BIANCA AZZI -->
+  <div id="panel-bianca" class="client-panel">
+    <div class="profile-info">
+      <div class="profile-avatar" style="background:linear-gradient(135deg,#db2777,#ec4899)">BA</div>
+      <div>
+        <div class="profile-name">Bianca Azzi</div>
+        <div class="profile-type">Em breve · Cliente futura</div>
+      </div>
+    </div>
+    <div class="coming-soon">
+      <h3>🕐 Em breve</h3>
+      <p>Este cliente ainda não foi integrado ao dashboard.<br>Dados serão adicionados quando o atendimento iniciar.</p>
+    </div>
+  </div>
+
+  <!-- MARIA CLARA CARMO -->
+  <div id="panel-mariaclara" class="client-panel">
+    <div class="profile-info">
+      <div class="profile-avatar" style="background:linear-gradient(135deg,#0891b2,#22d3ee)">MC</div>
+      <div>
+        <div class="profile-name">Maria Clara Carmo</div>
+        <div class="profile-type">Em breve · Cliente futura</div>
+      </div>
+    </div>
+    <div class="coming-soon">
+      <h3>🕐 Em breve</h3>
+      <p>Este cliente ainda não foi integrado ao dashboard.<br>Dados serão adicionados quando o atendimento iniciar.</p>
+    </div>
+  </div>
+
+  <!-- CAMILA BADARÓ -->
+  <div id="panel-camila" class="client-panel">
+    <div class="profile-info">
+      <div class="profile-avatar" style="background:linear-gradient(135deg,#65a30d,#84cc16)">CB</div>
+      <div>
+        <div class="profile-name">Camila Badaró</div>
+        <div class="profile-type">Em breve · Cliente futura</div>
+      </div>
+    </div>
+    <div class="coming-soon">
+      <h3>🕐 Em breve</h3>
+      <p>Este cliente ainda não foi integrado ao dashboard.<br>Dados serão adicionados quando o atendimento iniciar.</p>
+    </div>
+  </div>
+
+</div><!-- /content -->
+
+<script>
+function showClient(id) {
+  document.querySelectorAll('.client-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('panel-' + id).classList.add('active');
+  event.currentTarget.classList.add('active');
+}
+
+// Chart for Jamilly
+window.addEventListener('load', function() {
+  const ctx = document.getElementById('chart-jamilly').getContext('2d');
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['Expectativa vs realidade', 'Impulsionar post?', 'Mensagens dizem mais'],
+      datasets: [{
+        label: 'Impressões',
+        data: [660, 556, 535],
+        backgroundColor: ['#0077b5dd', '#0077b599', '#0077b566'],
+        borderRadius: 8,
+        borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` ${ctx.parsed.y} impressões`
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { font: { size: 10 }, color: '#64748b' }
+        },
+        y: {
+          grid: { color: '#f1f5f9' },
+          ticks: { font: { size: 10 }, color: '#64748b' }
+        }
+      }
+    }
+  });
+});
+</script>
+</body>
+</html>
